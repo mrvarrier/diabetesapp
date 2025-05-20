@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../screens/authentication/login_page.dart';
-import '../screens/authentication/register_page.dart';
+import '../presentation/screens/auth/login_page.dart';
+import '../presentation/screens/auth/register_page.dart';
 import '../screens/authentication/forgot_password_page.dart';
-import '../screens/authentication/onboarding_screens.dart';
+import '../presentation/screens/auth/onboarding_screens.dart';
 import '../screens/home/home_page.dart';
 import '../screens/education/education_plan_page.dart';
 import '../screens/education/lesson_player.dart';

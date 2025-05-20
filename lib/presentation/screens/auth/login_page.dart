@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/auth_service.dart';
-import '../../services/analytics_service.dart';
-import '../../constants/string_constants.dart';
-import '../../navigation/app_router.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_button.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/analytics_service.dart';
+import '../../../constants/string_constants.dart';
+import '../../../navigation/app_router.dart';
+import '../../../screens/widgets/custom_text_field.dart';
+import '../../../screens/widgets/custom_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);

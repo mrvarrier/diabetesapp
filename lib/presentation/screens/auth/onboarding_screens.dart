@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
-import '../../services/analytics_service.dart';
-import '../../constants/string_constants.dart';
-import '../../navigation/app_router.dart';
-import '../widgets/custom_button.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/analytics_service.dart';
+import '../../../constants/string_constants.dart';
+import '../../../navigation/app_router.dart';
+import '../../../screens/widgets/custom_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);

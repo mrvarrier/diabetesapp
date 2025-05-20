@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/auth_service.dart';
-import '../../services/analytics_service.dart';
-import '../../constants/string_constants.dart';
-import '../../navigation/app_router.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/custom_dropdown.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/analytics_service.dart';
+import '../../../constants/string_constants.dart';
+import '../../../navigation/app_router.dart';
+import '../../../screens/widgets/custom_text_field.dart';
+import '../../../screens/widgets/custom_button.dart';
+import '../../../screens/widgets/custom_dropdown.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
