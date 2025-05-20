@@ -1,123 +1,172 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// File: lib/data/models/user_model.dart
 
-class UserModel {
-  final String uid;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../config/constants.dart';
+
+class User {
+  final String id;
+  final String name;
   final String email;
-  final String fullName;
   final int age;
   final String gender;
   final String diabetesType;
   final String treatmentMethod;
-  final int points;
-  final int streakDays;
-  final DateTime lastActive;
-  final bool onboardingComplete;
-  final List<String> completedLessons;
-  final List<String> unlockedAchievements;
-  final String assignedPlanId;
-  final Map<String, dynamic> notificationSettings;
-  final bool isDarkModeEnabled;
+  final String? profileImageUrl;
+  final int totalPoints;
+  final int currentStreak;
+  final int longestStreak;
+  final String userType;
+  final DateTime createdAt;
+  final DateTime lastLoginAt;
+  final bool isOnboardingCompleted;
+  final Map<String, dynamic>? additionalInfo;
 
-  UserModel({
-    required this.uid,
+  User({
+    required this.id,
+    required this.name,
     required this.email,
-    required this.fullName,
     required this.age,
     required this.gender,
     required this.diabetesType,
     required this.treatmentMethod,
-    this.points = 0,
-    this.streakDays = 0,
-    required this.lastActive,
-    this.onboardingComplete = false,
-    this.completedLessons = const [],
-    this.unlockedAchievements = const [],
-    required this.assignedPlanId,
-    required this.notificationSettings,
-    this.isDarkModeEnabled = false,
+    this.profileImageUrl,
+    this.totalPoints = 0,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
+    this.userType = AppConstants.userTypePatient,
+    required this.createdAt,
+    required this.lastLoginAt,
+    this.isOnboardingCompleted = false,
+    this.additionalInfo,
   });
 
-  // Create a UserModel object from a Firebase document snapshot
-  factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-    return UserModel(
-      uid: doc.id,
-      email: data['email'] ?? '',
-      fullName: data['fullName'] ?? '',
-      age: data['age'] ?? 0,
-      gender: data['gender'] ?? '',
-      diabetesType: data['diabetesType'] ?? '',
-      treatmentMethod: data['treatmentMethod'] ?? '',
-      points: data['points'] ?? 0,
-      streakDays: data['streakDays'] ?? 0,
-      lastActive: (data['lastActive'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      onboardingComplete: data['onboardingComplete'] ?? false,
-      completedLessons: List<String>.from(data['completedLessons'] ?? []),
-      unlockedAchievements: List<String>.from(data['unlockedAchievements'] ?? []),
-      assignedPlanId: data['assignedPlanId'] ?? '',
-      notificationSettings: data['notificationSettings'] ?? {'dailyReminder': true, 'achievements': true, 'newContent': true},
-      isDarkModeEnabled: data['isDarkModeEnabled'] ?? false,
-    );
-  }
-
-  // Create a map from a UserModel object
-  Map<String, dynamic> toMap() {
+  // Convert User model to JSON format for Firestore
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'name': name,
       'email': email,
-      'fullName': fullName,
       'age': age,
       'gender': gender,
       'diabetesType': diabetesType,
       'treatmentMethod': treatmentMethod,
-      'points': points,
-      'streakDays': streakDays,
-      'lastActive': Timestamp.fromDate(lastActive),
-      'onboardingComplete': onboardingComplete,
-      'completedLessons': completedLessons,
-      'unlockedAchievements': unlockedAchievements,
-      'assignedPlanId': assignedPlanId,
-      'notificationSettings': notificationSettings,
-      'isDarkModeEnabled': isDarkModeEnabled,
+      'profileImageUrl': profileImageUrl,
+      'totalPoints': totalPoints,
+      'currentStreak': currentStreak,
+      'longestStreak': longestStreak,
+      'userType': userType,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'lastLoginAt': Timestamp.fromDate(lastLoginAt),
+      'isOnboardingCompleted': isOnboardingCompleted,
+      'additionalInfo': additionalInfo,
     };
   }
 
-  // Create a copy of the UserModel with updated fields
-  UserModel copyWith({
-    String? uid,
+  // Create User model from Firestore document
+  factory User.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    return User(
+      id: doc.id,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      age: data['age'] ?? 0,
+      gender: data['gender'] ?? '',
+      diabetesType: data['diabetesType'] ?? AppConstants.diabetesType2,
+      treatmentMethod: data['treatmentMethod'] ?? AppConstants.treatmentLifestyle,
+      profileImageUrl: data['profileImageUrl'],
+      totalPoints: data['totalPoints'] ?? 0,
+      currentStreak: data['currentStreak'] ?? 0,
+      longestStreak: data['longestStreak'] ?? 0,
+      userType: data['userType'] ?? AppConstants.userTypePatient,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      lastLoginAt: (data['lastLoginAt'] as Timestamp).toDate(),
+      isOnboardingCompleted: data['isOnboardingCompleted'] ?? false,
+      additionalInfo: data['additionalInfo'],
+    );
+  }
+
+  // Create User model from Firestore document with specific ID
+  factory User.fromJson(Map<String, dynamic> json, String id) {
+    return User(
+      id: id,
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      age: json['age'] ?? 0,
+      gender: json['gender'] ?? '',
+      diabetesType: json['diabetesType'] ?? AppConstants.diabetesType2,
+      treatmentMethod: json['treatmentMethod'] ?? AppConstants.treatmentLifestyle,
+      profileImageUrl: json['profileImageUrl'],
+      totalPoints: json['totalPoints'] ?? 0,
+      currentStreak: json['currentStreak'] ?? 0,
+      longestStreak: json['longestStreak'] ?? 0,
+      userType: json['userType'] ?? AppConstants.userTypePatient,
+      createdAt: (json['createdAt'] as Timestamp).toDate(),
+      lastLoginAt: (json['lastLoginAt'] as Timestamp).toDate(),
+      isOnboardingCompleted: json['isOnboardingCompleted'] ?? false,
+      additionalInfo: json['additionalInfo'],
+    );
+  }
+
+  // Create a copy of User with modified fields
+  User copyWith({
+    String? id,
+    String? name,
     String? email,
-    String? fullName,
     int? age,
     String? gender,
     String? diabetesType,
     String? treatmentMethod,
-    int? points,
-    int? streakDays,
-    DateTime? lastActive,
-    bool? onboardingComplete,
-    List<String>? completedLessons,
-    List<String>? unlockedAchievements,
-    String? assignedPlanId,
-    Map<String, dynamic>? notificationSettings,
-    bool? isDarkModeEnabled,
+    String? profileImageUrl,
+    int? totalPoints,
+    int? currentStreak,
+    int? longestStreak,
+    String? userType,
+    DateTime? createdAt,
+    DateTime? lastLoginAt,
+    bool? isOnboardingCompleted,
+    Map<String, dynamic>? additionalInfo,
   }) {
-    return UserModel(
-      uid: uid ?? this.uid,
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
       email: email ?? this.email,
-      fullName: fullName ?? this.fullName,
       age: age ?? this.age,
       gender: gender ?? this.gender,
       diabetesType: diabetesType ?? this.diabetesType,
       treatmentMethod: treatmentMethod ?? this.treatmentMethod,
-      points: points ?? this.points,
-      streakDays: streakDays ?? this.streakDays,
-      lastActive: lastActive ?? this.lastActive,
-      onboardingComplete: onboardingComplete ?? this.onboardingComplete,
-      completedLessons: completedLessons ?? this.completedLessons,
-      unlockedAchievements: unlockedAchievements ?? this.unlockedAchievements,
-      assignedPlanId: assignedPlanId ?? this.assignedPlanId,
-      notificationSettings: notificationSettings ?? this.notificationSettings,
-      isDarkModeEnabled: isDarkModeEnabled ?? this.isDarkModeEnabled,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      totalPoints: totalPoints ?? this.totalPoints,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      userType: userType ?? this.userType,
+      createdAt: createdAt ?? this.createdAt,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      additionalInfo: additionalInfo ?? this.additionalInfo,
+    );
+  }
+
+  // Create a User instance for offline use
+  factory User.offline({
+    required String id,
+    required String name,
+    required String email,
+    required int age,
+    required String gender,
+    required String diabetesType,
+    required String treatmentMethod,
+  }) {
+    return User(
+      id: id,
+      name: name,
+      email: email,
+      age: age,
+      gender: gender,
+      diabetesType: diabetesType,
+      treatmentMethod: treatmentMethod,
+      createdAt: DateTime.now(),
+      lastLoginAt: DateTime.now(),
     );
   }
 }

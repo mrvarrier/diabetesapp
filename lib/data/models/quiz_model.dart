@@ -1,161 +1,233 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// File: lib/data/models/quiz_model.dart
 
-class QuizModel {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../config/constants.dart';
+
+class Quiz {
   final String id;
   final String title;
   final String description;
-  final String moduleId;
-  final String contentId; // Related content (lesson)
-  final int pointsValue;
-  final int passingScore; // Percentage needed to pass (e.g., 70)
+  final String contentId; // Associated lesson/content
   final List<QuizQuestion> questions;
-  final bool isActive;
+  final int passingScore; // Minimum percentage to pass
+  final int pointsPerQuestion;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isActive;
 
-  QuizModel({
+  Quiz({
     required this.id,
     required this.title,
     required this.description,
-    required this.moduleId,
     required this.contentId,
-    required this.pointsValue,
-    this.passingScore = 70,
     required this.questions,
-    this.isActive = true,
+    this.passingScore = 60, // Default passing score: 60%
+    this.pointsPerQuestion = AppConstants.defaultPointsPerQuizQuestion,
     required this.createdAt,
     required this.updatedAt,
+    this.isActive = true,
   });
 
-  // Create a QuizModel object from a Firebase document snapshot
-  factory QuizModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+  // Calculate total possible points for this quiz
+  int get totalPossiblePoints => questions.length * pointsPerQuestion;
 
-    // Parse questions
-    List<QuizQuestion> questionsList = [];
-    if (data['questions'] != null && data['questions'] is List) {
-      questionsList = (data['questions'] as List)
-          .map((q) => QuizQuestion.fromMap(q as Map<String, dynamic>))
-          .toList();
-    }
-
-    return QuizModel(
-      id: doc.id,
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      moduleId: data['moduleId'] ?? '',
-      contentId: data['contentId'] ?? '',
-      pointsValue: data['pointsValue'] ?? 0,
-      passingScore: data['passingScore'] ?? 70,
-      questions: questionsList,
-      isActive: data['isActive'] ?? true,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }
-
-  // Create a map from a QuizModel object
-  Map<String, dynamic> toMap() {
+  // Convert Quiz model to JSON format for Firestore
+  Map<String, dynamic> toJson() {
     return {
       'title': title,
       'description': description,
-      'moduleId': moduleId,
       'contentId': contentId,
-      'pointsValue': pointsValue,
+      'questions': questions.map((question) => question.toJson()).toList(),
       'passingScore': passingScore,
-      'questions': questions.map((q) => q.toMap()).toList(),
-      'isActive': isActive,
+      'pointsPerQuestion': pointsPerQuestion,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'isActive': isActive,
     };
   }
 
-  // Calculate the total possible score
-  int get totalPossiblePoints => questions.length;
+  // Create Quiz model from Firestore document
+  factory Quiz.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
 
-  // Create a copy of the QuizModel with updated fields
-  QuizModel copyWith({
+    final List<dynamic> questionsData = data['questions'] ?? [];
+    final List<QuizQuestion> questions = questionsData
+        .map((questionData) => QuizQuestion.fromJson(questionData))
+        .toList();
+
+    return Quiz(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      contentId: data['contentId'] ?? '',
+      questions: questions,
+      passingScore: data['passingScore'] ?? 60,
+      pointsPerQuestion: data['pointsPerQuestion'] ?? AppConstants.defaultPointsPerQuizQuestion,
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      isActive: data['isActive'] ?? true,
+    );
+  }
+
+  // Create Quiz model from JSON data
+  factory Quiz.fromJson(Map<String, dynamic> json, String id) {
+    final List<dynamic> questionsData = json['questions'] ?? [];
+    final List<QuizQuestion> questions = questionsData
+        .map((questionData) => QuizQuestion.fromJson(questionData))
+        .toList();
+
+    return Quiz(
+      id: id,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      contentId: json['contentId'] ?? '',
+      questions: questions,
+      passingScore: json['passingScore'] ?? 60,
+      pointsPerQuestion: json['pointsPerQuestion'] ?? AppConstants.defaultPointsPerQuizQuestion,
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      isActive: json['isActive'] ?? true,
+    );
+  }
+
+  // Create a copy of Quiz with modified fields
+  Quiz copyWith({
     String? id,
     String? title,
     String? description,
-    String? moduleId,
     String? contentId,
-    int? pointsValue,
-    int? passingScore,
     List<QuizQuestion>? questions,
-    bool? isActive,
+    int? passingScore,
+    int? pointsPerQuestion,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isActive,
   }) {
-    return QuizModel(
+    return Quiz(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
-      moduleId: moduleId ?? this.moduleId,
       contentId: contentId ?? this.contentId,
-      pointsValue: pointsValue ?? this.pointsValue,
-      passingScore: passingScore ?? this.passingScore,
       questions: questions ?? this.questions,
-      isActive: isActive ?? this.isActive,
+      passingScore: passingScore ?? this.passingScore,
+      pointsPerQuestion: pointsPerQuestion ?? this.pointsPerQuestion,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isActive: isActive ?? this.isActive,
     );
   }
 }
 
 class QuizQuestion {
+  final String id;
   final String questionText;
-  final List<String> options;
-  final int correctOptionIndex; // Zero-based index of the correct answer
-  final String? explanation; // Optional explanation of the correct answer
+  final String questionType; // multiple_choice, true_false, matching
+  final List<QuizOption> options;
+  final List<String> correctAnswers; // IDs of correct options
+  final String? explanation; // Explanation shown after answering
+  final Map<String, dynamic>? metadata;
 
   QuizQuestion({
+    required this.id,
     required this.questionText,
+    required this.questionType,
     required this.options,
-    required this.correctOptionIndex,
+    required this.correctAnswers,
     this.explanation,
+    this.metadata,
   });
 
-  // Create a QuizQuestion object from a map
-  factory QuizQuestion.fromMap(Map<String, dynamic> map) {
-    return QuizQuestion(
-      questionText: map['questionText'] ?? '',
-      options: List<String>.from(map['options'] ?? []),
-      correctOptionIndex: map['correctOptionIndex'] ?? 0,
-      explanation: map['explanation'],
-    );
-  }
-
-  // Create a map from a QuizQuestion object
-  Map<String, dynamic> toMap() {
+  // Convert QuizQuestion model to JSON format
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'questionText': questionText,
-      'options': options,
-      'correctOptionIndex': correctOptionIndex,
+      'questionType': questionType,
+      'options': options.map((option) => option.toJson()).toList(),
+      'correctAnswers': correctAnswers,
       'explanation': explanation,
+      'metadata': metadata,
     };
   }
 
-  // Get the correct answer text
-  String get correctAnswer {
-    if (correctOptionIndex >= 0 && correctOptionIndex < options.length) {
-      return options[correctOptionIndex];
-    }
-    return '';
+  // Create QuizQuestion model from JSON data
+  factory QuizQuestion.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> optionsData = json['options'] ?? [];
+    final List<QuizOption> options = optionsData
+        .map((optionData) => QuizOption.fromJson(optionData))
+        .toList();
+
+    return QuizQuestion(
+      id: json['id'] ?? '',
+      questionText: json['questionText'] ?? '',
+      questionType: json['questionType'] ?? AppConstants.questionTypeMultipleChoice,
+      options: options,
+      correctAnswers: json['correctAnswers'] != null
+          ? List<String>.from(json['correctAnswers'])
+          : [],
+      explanation: json['explanation'],
+      metadata: json['metadata'],
+    );
   }
 
-  // Create a copy of the QuizQuestion with updated fields
-  QuizQuestion copyWith({
-    String? questionText,
-    List<String>? options,
-    int? correctOptionIndex,
-    String? explanation,
-  }) {
-    return QuizQuestion(
-      questionText: questionText ?? this.questionText,
-      options: options ?? this.options,
-      correctOptionIndex: correctOptionIndex ?? this.correctOptionIndex,
-      explanation: explanation ?? this.explanation,
+  // Check if a given answer is correct
+  bool isCorrect(List<String> selectedOptionIds) {
+    // For multiple choice with multiple correct answers
+    if (questionType == AppConstants.questionTypeMultipleChoice && correctAnswers.length > 1) {
+      // All correct options must be selected and no incorrect ones
+      return selectedOptionIds.length == correctAnswers.length &&
+          selectedOptionIds.every((optionId) => correctAnswers.contains(optionId));
+    }
+    // For true/false or multiple choice with one correct answer
+    else if (questionType == AppConstants.questionTypeTrueFalse ||
+        questionType == AppConstants.questionTypeMultipleChoice) {
+      // One correct option must be selected
+      return selectedOptionIds.length == 1 && correctAnswers.contains(selectedOptionIds[0]);
+    }
+    // For matching questions (not fully implemented in this MVP)
+    else if (questionType == AppConstants.questionTypeMatching) {
+      // Matching logic would go here
+      return false;
+    }
+
+    return false;
+  }
+}
+
+class QuizOption {
+  final String id;
+  final String text;
+  final Map<String, dynamic>? metadata;
+
+  QuizOption({
+    required this.id,
+    required this.text,
+    this.metadata,
+  });
+
+  // Convert QuizOption model to JSON format
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'metadata': metadata,
+    };
+  }
+
+  // Create QuizOption model from JSON data
+  factory QuizOption.fromJson(Map<String, dynamic> json) {
+    return QuizOption(
+      id: json['id'] ?? '',
+      text: json['text'] ?? '',
+      metadata: json['metadata'],
     );
   }
 }

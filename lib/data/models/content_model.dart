@@ -1,141 +1,196 @@
+// File: lib/data/models/content_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../config/constants.dart';
 
-enum ContentType {
-  video,
-  slides,
-  mixed
-}
-
-class ContentModel {
+class Content {
   final String id;
   final String title;
   final String description;
-  final ContentType contentType;
-  final String youtubeVideoId;
-  final List<String> slideUrls;
-  final List<String> slideContents;
-  final int pointsValue;
-  final String moduleId;
-  final int sequenceNumber;
-  final int estimatedDuration; // in minutes
-  final bool isActive;
+  final String contentType; // video, slide
+  final int order;
+  final String? youtubeVideoId;
+  final List<String>? slideUrls;
+  final String? thumbnailUrl;
+  final int pointsToEarn;
+  final Duration? duration;
+  final List<String> tags;
+  final String? quizId;
+  final List<String> requiredDiabetesTypes;
+  final List<String> requiredTreatmentMethods;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final bool isDownloadable;
-  final Map<String, dynamic> metadata;
+  final Map<String, dynamic>? metadata;
+  final bool isActive;
 
-  ContentModel({
+  Content({
     required this.id,
     required this.title,
     required this.description,
     required this.contentType,
-    this.youtubeVideoId = '',
-    this.slideUrls = const [],
-    this.slideContents = const [],
-    required this.pointsValue,
-    required this.moduleId,
-    required this.sequenceNumber,
-    required this.estimatedDuration,
-    this.isActive = true,
+    required this.order,
+    this.youtubeVideoId,
+    this.slideUrls,
+    this.thumbnailUrl,
+    this.pointsToEarn = AppConstants.defaultPointsPerLesson,
+    this.duration,
+    this.tags = const [],
+    this.quizId,
+    this.requiredDiabetesTypes = const [],
+    this.requiredTreatmentMethods = const [],
     required this.createdAt,
     required this.updatedAt,
-    this.isDownloadable = true,
-    this.metadata = const {},
+    this.metadata,
+    this.isActive = true,
   });
 
-  // Create a ContentModel object from a Firebase document snapshot
-  factory ContentModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-    return ContentModel(
-      id: doc.id,
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      contentType: ContentType.values.firstWhere(
-            (e) => e.toString() == 'ContentType.${data['contentType']}',
-        orElse: () => ContentType.mixed,
-      ),
-      youtubeVideoId: data['youtubeVideoId'] ?? '',
-      slideUrls: List<String>.from(data['slideUrls'] ?? []),
-      slideContents: List<String>.from(data['slideContents'] ?? []),
-      pointsValue: data['pointsValue'] ?? 0,
-      moduleId: data['moduleId'] ?? '',
-      sequenceNumber: data['sequenceNumber'] ?? 0,
-      estimatedDuration: data['estimatedDuration'] ?? 0,
-      isActive: data['isActive'] ?? true,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isDownloadable: data['isDownloadable'] ?? true,
-      metadata: data['metadata'] ?? {},
-    );
+  // Check if this content is applicable to a user with specific diabetes type and treatment method
+  bool isApplicableTo(String diabetesType, String treatmentMethod) {
+    return (requiredDiabetesTypes.isEmpty || requiredDiabetesTypes.contains(diabetesType)) &&
+        (requiredTreatmentMethods.isEmpty || requiredTreatmentMethods.contains(treatmentMethod));
   }
 
-  // Create a map from a ContentModel object
-  Map<String, dynamic> toMap() {
+  // Convert Content model to JSON format for Firestore
+  Map<String, dynamic> toJson() {
     return {
       'title': title,
       'description': description,
-      'contentType': contentType.toString().split('.').last,
+      'contentType': contentType,
+      'order': order,
       'youtubeVideoId': youtubeVideoId,
       'slideUrls': slideUrls,
-      'slideContents': slideContents,
-      'pointsValue': pointsValue,
-      'moduleId': moduleId,
-      'sequenceNumber': sequenceNumber,
-      'estimatedDuration': estimatedDuration,
-      'isActive': isActive,
+      'thumbnailUrl': thumbnailUrl,
+      'pointsToEarn': pointsToEarn,
+      'duration': duration?.inSeconds,
+      'tags': tags,
+      'quizId': quizId,
+      'requiredDiabetesTypes': requiredDiabetesTypes,
+      'requiredTreatmentMethods': requiredTreatmentMethods,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
-      'isDownloadable': isDownloadable,
       'metadata': metadata,
+      'isActive': isActive,
     };
   }
 
-  // Create a copy of the ContentModel with updated fields
-  ContentModel copyWith({
+  // Create Content model from Firestore document
+  factory Content.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    return Content(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      contentType: data['contentType'] ?? AppConstants.contentTypeVideo,
+      order: data['order'] ?? 0,
+      youtubeVideoId: data['youtubeVideoId'],
+      slideUrls: data['slideUrls'] != null
+          ? List<String>.from(data['slideUrls'])
+          : null,
+      thumbnailUrl: data['thumbnailUrl'],
+      pointsToEarn: data['pointsToEarn'] ?? AppConstants.defaultPointsPerLesson,
+      duration: data['duration'] != null
+          ? Duration(seconds: data['duration'])
+          : null,
+      tags: data['tags'] != null
+          ? List<String>.from(data['tags'])
+          : [],
+      quizId: data['quizId'],
+      requiredDiabetesTypes: data['requiredDiabetesTypes'] != null
+          ? List<String>.from(data['requiredDiabetesTypes'])
+          : [],
+      requiredTreatmentMethods: data['requiredTreatmentMethods'] != null
+          ? List<String>.from(data['requiredTreatmentMethods'])
+          : [],
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      metadata: data['metadata'],
+      isActive: data['isActive'] ?? true,
+    );
+  }
+
+  // Create Content model from JSON data
+  factory Content.fromJson(Map<String, dynamic> json, String id) {
+    return Content(
+      id: id,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      contentType: json['contentType'] ?? AppConstants.contentTypeVideo,
+      order: json['order'] ?? 0,
+      youtubeVideoId: json['youtubeVideoId'],
+      slideUrls: json['slideUrls'] != null
+          ? List<String>.from(json['slideUrls'])
+          : null,
+      thumbnailUrl: json['thumbnailUrl'],
+      pointsToEarn: json['pointsToEarn'] ?? AppConstants.defaultPointsPerLesson,
+      duration: json['duration'] != null
+          ? Duration(seconds: json['duration'])
+          : null,
+      tags: json['tags'] != null
+          ? List<String>.from(json['tags'])
+          : [],
+      quizId: json['quizId'],
+      requiredDiabetesTypes: json['requiredDiabetesTypes'] != null
+          ? List<String>.from(json['requiredDiabetesTypes'])
+          : [],
+      requiredTreatmentMethods: json['requiredTreatmentMethods'] != null
+          ? List<String>.from(json['requiredTreatmentMethods'])
+          : [],
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      metadata: json['metadata'],
+      isActive: json['isActive'] ?? true,
+    );
+  }
+
+  // Create a copy of Content with modified fields
+  Content copyWith({
     String? id,
     String? title,
     String? description,
-    ContentType? contentType,
+    String? contentType,
+    int? order,
     String? youtubeVideoId,
     List<String>? slideUrls,
-    List<String>? slideContents,
-    int? pointsValue,
-    String? moduleId,
-    int? sequenceNumber,
-    int? estimatedDuration,
-    bool? isActive,
+    String? thumbnailUrl,
+    int? pointsToEarn,
+    Duration? duration,
+    List<String>? tags,
+    String? quizId,
+    List<String>? requiredDiabetesTypes,
+    List<String>? requiredTreatmentMethods,
     DateTime? createdAt,
     DateTime? updatedAt,
-    bool? isDownloadable,
     Map<String, dynamic>? metadata,
+    bool? isActive,
   }) {
-    return ContentModel(
+    return Content(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
       contentType: contentType ?? this.contentType,
+      order: order ?? this.order,
       youtubeVideoId: youtubeVideoId ?? this.youtubeVideoId,
       slideUrls: slideUrls ?? this.slideUrls,
-      slideContents: slideContents ?? this.slideContents,
-      pointsValue: pointsValue ?? this.pointsValue,
-      moduleId: moduleId ?? this.moduleId,
-      sequenceNumber: sequenceNumber ?? this.sequenceNumber,
-      estimatedDuration: estimatedDuration ?? this.estimatedDuration,
-      isActive: isActive ?? this.isActive,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      pointsToEarn: pointsToEarn ?? this.pointsToEarn,
+      duration: duration ?? this.duration,
+      tags: tags ?? this.tags,
+      quizId: quizId ?? this.quizId,
+      requiredDiabetesTypes: requiredDiabetesTypes ?? this.requiredDiabetesTypes,
+      requiredTreatmentMethods: requiredTreatmentMethods ?? this.requiredTreatmentMethods,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      isDownloadable: isDownloadable ?? this.isDownloadable,
       metadata: metadata ?? this.metadata,
+      isActive: isActive ?? this.isActive,
     );
   }
-
-  // Returns true if the content has a valid YouTube video ID
-  bool get hasVideo => youtubeVideoId.isNotEmpty;
-
-  // Returns true if the content has slides
-  bool get hasSlides => slideUrls.isNotEmpty || slideContents.isNotEmpty;
-
-  // Returns true if this content is part of a sequence
-  bool get isSequential => sequenceNumber > 0;
 }

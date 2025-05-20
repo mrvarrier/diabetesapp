@@ -1,304 +1,237 @@
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_model.dart';
+// File: lib/data/services/auth_service.dart
 
-class AuthService extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/constants.dart';
+import '../models/user_model.dart' as app_models;
+
+class AuthService {
+  final firebase_auth.FirebaseAuth _firebaseAuth = firebase_auth.FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Stream to track the authentication state
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Get the current user
-  User? get currentUser => _auth.currentUser;
-
-  // Get user UID
-  String? get uid => _auth.currentUser?.uid;
+  // Get current user ID
+  String? get currentUserId => _firebaseAuth.currentUser?.uid;
 
   // Check if user is logged in
-  bool get isLoggedIn => _auth.currentUser != null;
+  bool get isLoggedIn => _firebaseAuth.currentUser != null;
 
   // Sign in with email and password
-  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
+  Future<app_models.User?> signInWithEmailAndPassword(String email, String password) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
+      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Update last active timestamp
-      await _firestore.collection('users').doc(result.user!.uid).update({
-        'lastActive': FieldValue.serverTimestamp(),
-      });
+      final user = userCredential.user;
+      if (user != null) {
+        // Update last login time
+        await _firestore.collection(AppConstants.usersCollection).doc(user.uid).update({
+          'lastLoginAt': FieldValue.serverTimestamp(),
+        });
 
-      notifyListeners();
-      return result;
+        // Save user ID to SharedPreferences for offline use
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.userIdKey, user.uid);
+
+        // Get user data from Firestore
+        return await getUserById(user.uid);
+      }
+      return null;
     } catch (e) {
       rethrow;
     }
   }
 
   // Register with email and password
-  Future<UserCredential> registerWithEmailAndPassword(
-      String email,
-      String password,
-      String fullName,
-      int age,
-      String gender,
-      String diabetesType,
-      String treatmentMethod
-      ) async {
+  Future<app_models.User?> registerWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String name,
+    required int age,
+    required String gender,
+    required String diabetesType,
+    required String treatmentMethod,
+  }) async {
     try {
-      // Create user account
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
+      // Create user in Firebase Auth
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Create user document in Firestore
-      await _createUserDocument(
-        result.user!.uid,
-        email,
-        fullName,
-        age,
-        gender,
-        diabetesType,
-        treatmentMethod,
-      );
+      final user = userCredential.user;
+      if (user != null) {
+        // Create user data in Firestore
+        final userData = app_models.User(
+          id: user.uid,
+          name: name,
+          email: email,
+          age: age,
+          gender: gender,
+          diabetesType: diabetesType,
+          treatmentMethod: treatmentMethod,
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        );
 
-      // Assign default education plan based on diabetes type
-      await _assignDefaultEducationPlan(result.user!.uid, diabetesType);
+        await _firestore.collection(AppConstants.usersCollection).doc(user.uid).set(userData.toJson());
 
-      notifyListeners();
-      return result;
+        // Save user ID to SharedPreferences for offline use
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.userIdKey, user.uid);
+
+        return userData;
+      }
+      return null;
     } catch (e) {
       rethrow;
     }
   }
 
-  // Create a user document in Firestore
-  Future<void> _createUserDocument(
-      String uid,
-      String email,
-      String fullName,
-      int age,
-      String gender,
-      String diabetesType,
-      String treatmentMethod,
-      ) async {
-    await _firestore.collection('users').doc(uid).set({
-      'email': email,
-      'fullName': fullName,
-      'age': age,
-      'gender': gender,
-      'diabetesType': diabetesType,
-      'treatmentMethod': treatmentMethod,
-      'points': 0,
-      'streakDays': 0,
-      'lastActive': FieldValue.serverTimestamp(),
-      'onboardingComplete': false,
-      'completedLessons': [],
-      'unlockedAchievements': [],
-      'notificationSettings': {
-        'dailyReminder': true,
-        'achievements': true,
-        'newContent': true,
-      },
-      'isDarkModeEnabled': false,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // Assign default education plan based on diabetes type
-  Future<void> _assignDefaultEducationPlan(String uid, String diabetesType) async {
-    // Get the default plan ID for this diabetes type
-    QuerySnapshot planSnapshot = await _firestore
-        .collection('education_plans')
-        .where('diabetesType', isEqualTo: diabetesType)
-        .where('isDefault', isEqualTo: true)
-        .limit(1)
-        .get();
-
-    if (planSnapshot.docs.isNotEmpty) {
-      String planId = planSnapshot.docs.first.id;
-
-      // Assign plan to user
-      await _firestore.collection('users').doc(uid).update({
-        'assignedPlanId': planId,
-      });
-    }
-  }
-
   // Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
-    notifyListeners();
+    try {
+      await _firebaseAuth.signOut();
+
+      // Clear user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(AppConstants.userIdKey);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // Reset password
   Future<void> resetPassword(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get user by ID from Firestore
+  Future<app_models.User?> getUserById(String userId) async {
+    try {
+      final doc = await _firestore.collection(AppConstants.usersCollection).doc(userId).get();
+      if (doc.exists) {
+        return app_models.User.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get current user from Firestore
+  Future<app_models.User?> getCurrentUser() async {
+    try {
+      final currentUser = _firebaseAuth.currentUser;
+      if (currentUser != null) {
+        return await getUserById(currentUser.uid);
+      }
+
+      // Try to get user ID from SharedPreferences for offline use
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString(AppConstants.userIdKey);
+      if (userId != null) {
+        return await getUserById(userId);
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   // Update user profile
-  Future<void> updateProfile({
-    String? fullName,
+  Future<app_models.User?> updateUserProfile({
+    required String userId,
+    String? name,
     int? age,
     String? gender,
     String? diabetesType,
     String? treatmentMethod,
-    Map<String, dynamic>? notificationSettings,
-    bool? isDarkModeEnabled,
+    String? profileImageUrl,
   }) async {
-    if (_auth.currentUser == null) {
-      throw Exception('User not logged in');
+    try {
+      final userRef = _firestore.collection(AppConstants.usersCollection).doc(userId);
+
+      final updateData = <String, dynamic>{};
+      if (name != null) updateData['name'] = name;
+      if (age != null) updateData['age'] = age;
+      if (gender != null) updateData['gender'] = gender;
+      if (diabetesType != null) updateData['diabetesType'] = diabetesType;
+      if (treatmentMethod != null) updateData['treatmentMethod'] = treatmentMethod;
+      if (profileImageUrl != null) updateData['profileImageUrl'] = profileImageUrl;
+
+      await userRef.update(updateData);
+
+      return await getUserById(userId);
+    } catch (e) {
+      rethrow;
     }
-
-    Map<String, dynamic> updateData = {};
-
-    if (fullName != null) updateData['fullName'] = fullName;
-    if (age != null) updateData['age'] = age;
-    if (gender != null) updateData['gender'] = gender;
-    if (diabetesType != null) updateData['diabetesType'] = diabetesType;
-    if (treatmentMethod != null) updateData['treatmentMethod'] = treatmentMethod;
-    if (notificationSettings != null) updateData['notificationSettings'] = notificationSettings;
-    if (isDarkModeEnabled != null) updateData['isDarkModeEnabled'] = isDarkModeEnabled;
-
-    await _firestore.collection('users').doc(_auth.currentUser!.uid).update(updateData);
-    notifyListeners();
   }
 
-  // Get current user data
-  Future<UserModel?> getCurrentUserData() async {
-    if (_auth.currentUser == null) {
-      return null;
+  // Complete onboarding
+  Future<void> completeOnboarding(String userId) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+        'isOnboardingCompleted': true,
+      });
+    } catch (e) {
+      rethrow;
     }
-
-    DocumentSnapshot doc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
-
-    if (doc.exists) {
-      return UserModel.fromFirestore(doc);
-    }
-
-    return null;
   }
 
-  // Check if onboarding is complete
-  Future<bool> isOnboardingComplete() async {
-    if (_auth.currentUser == null) {
-      return false;
+  // Update user points
+  Future<void> updateUserPoints(String userId, int pointsToAdd) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+        'totalPoints': FieldValue.increment(pointsToAdd),
+      });
+    } catch (e) {
+      rethrow;
     }
-
-    DocumentSnapshot doc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
-
-    if (doc.exists) {
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      return data['onboardingComplete'] ?? false;
-    }
-
-    return false;
-  }
-
-  // Mark onboarding as complete
-  Future<void> completeOnboarding() async {
-    if (_auth.currentUser == null) {
-      throw Exception('User not logged in');
-    }
-
-    await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
-      'onboardingComplete': true,
-    });
-
-    notifyListeners();
-  }
-
-  // Delete account
-  Future<void> deleteAccount() async {
-    if (_auth.currentUser == null) {
-      throw Exception('User not logged in');
-    }
-
-    String uid = _auth.currentUser!.uid;
-
-    // Delete user document
-    await _firestore.collection('users').doc(uid).delete();
-
-    // Delete related progress data
-    QuerySnapshot progressSnapshot = await _firestore
-        .collection('progress')
-        .where('userId', isEqualTo: uid)
-        .get();
-
-    for (var doc in progressSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete related feedback
-    QuerySnapshot feedbackSnapshot = await _firestore
-        .collection('feedback')
-        .where('userId', isEqualTo: uid)
-        .get();
-
-    for (var doc in feedbackSnapshot.docs) {
-      await doc.reference.delete();
-    }
-
-    // Delete auth account
-    await _auth.currentUser!.delete();
-
-    notifyListeners();
-  }
-
-  // Check if user is an admin
-  Future<bool> isAdmin() async {
-    if (_auth.currentUser == null) {
-      return false;
-    }
-
-    DocumentSnapshot doc = await _firestore.collection('admins').doc(_auth.currentUser!.uid).get();
-    return doc.exists;
   }
 
   // Update user streak
-  Future<void> updateStreak() async {
-    if (_auth.currentUser == null) {
-      return;
-    }
+  Future<void> updateUserStreak(String userId, int newStreak) async {
+    try {
+      final userRef = _firestore.collection(AppConstants.usersCollection).doc(userId);
+      final userDoc = await userRef.get();
 
-    DocumentSnapshot userDoc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        final longestStreak = data['longestStreak'] ?? 0;
 
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-      DateTime? lastActive = (userData['lastActive'] as Timestamp?)?.toDate();
-      int currentStreak = userData['streakDays'] ?? 0;
-
-      // Check if the last active date was yesterday
-      if (lastActive != null) {
-        DateTime now = DateTime.now();
-        DateTime yesterday = DateTime(now.year, now.month, now.day - 1);
-        DateTime lastActiveDate = DateTime(
-          lastActive.year,
-          lastActive.month,
-          lastActive.day,
-        );
-
-        if (lastActiveDate.isAtSameMomentAs(yesterday)) {
-          // Increase streak
-          await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
-            'streakDays': currentStreak + 1,
-            'lastActive': FieldValue.serverTimestamp(),
+        // Update longest streak if current streak is higher
+        if (newStreak > longestStreak) {
+          await userRef.update({
+            'currentStreak': newStreak,
+            'longestStreak': newStreak,
           });
-        } else if (!lastActiveDate.isAtSameMomentAs(DateTime(now.year, now.month, now.day))) {
-          // Reset streak if not active today or yesterday
-          await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
-            'streakDays': 1, // Reset to 1 for today
-            'lastActive': FieldValue.serverTimestamp(),
+        } else {
+          await userRef.update({
+            'currentStreak': newStreak,
           });
         }
       }
+    } catch (e) {
+      rethrow;
     }
+  }
 
-    notifyListeners();
+  // Reset user streak
+  Future<void> resetUserStreak(String userId) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+        'currentStreak': 0,
+      });
+    } catch (e) {
+      rethrow;
+    }
   }
 }
