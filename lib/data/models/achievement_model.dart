@@ -142,4 +142,29 @@ class Achievement {
       awardedAt: DateTime.now(),
     );
   }
+
+  // Add copyWith method to fix the error
+  Achievement copyWith({
+    String? id,
+    String? userId,
+    String? achievementType,
+    String? title,
+    String? description,
+    String? iconUrl,
+    int? pointsAwarded,
+    DateTime? awardedAt,
+    Map<String, dynamic>? metadata,
+  }) {
+    return Achievement(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      achievementType: achievementType ?? this.achievementType,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      iconUrl: iconUrl ?? this.iconUrl,
+      pointsAwarded: pointsAwarded ?? this.pointsAwarded,
+      awardedAt: awardedAt ?? this.awardedAt,
+      metadata: metadata ?? this.metadata,
+    );
+  }
 }

@@ -1,204 +1,291 @@
-# DiabetesBuddy: Flutter Diabetes Education App
+# DiabetesEdu - Flutter Diabetes Education App
 
-![DiabetesBuddy Logo](assets/images/logo.png)
-
-A gamified diabetes education app built with Flutter that helps patients learn about diabetes management through interactive videos, slides, and quizzes.
+DiabetesEdu is a gamified diabetes education app built with Flutter. It helps patients learn about diabetes through videos, slides, and quizzes, following an engagement model similar to Duolingo.
 
 ## Features
 
-- 🔐 **Authentication**: Secure login, registration and password reset
-- 📚 **Personalized Education Plans**: Customized content based on diabetes type and treatment approach
-- 🎮 **Gamification**: Points system, achievements, and daily streaks to encourage engagement
-- 📽️ **Video Learning**: Integration with YouTube API for educational videos
-- 📊 **Progress Tracking**: Detailed progress reports and analytics
-- 📱 **Offline Support**: Core functionality works without internet connection
-- 🏆 **Quiz System**: Knowledge assessment with immediate feedback
-- 🔔 **Notifications**: Reminders to maintain streaks and engage with content
-- 📄 **PDF Reports**: Downloadable progress reports
+- **User Authentication**: Register, login, and profile management
+- **Custom Learning Plans**: Personalized based on diabetes type and treatment approach
+- **Gamification**: Points system, achievements, and streaks
+- **Content Delivery**: YouTube videos and slides with progress tracking
+- **Quiz System**: Interactive quizzes with scoring and feedback
+- **Progress Tracking**: Visual reports on learning progress
+- **Offline Support**: Core functionality works offline with synchronization
+- **Admin Panel**: Manage content, quizzes, and user data
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Flutter](https://flutter.dev/docs/get-started/install) (2.0 or higher)
-- [Firebase Account](https://firebase.google.com/) for authentication and database
-- [YouTube API Key](https://developers.google.com/youtube/v3/getting-started) for video integration
+- Flutter SDK (latest stable version)
+- Dart SDK
+- Android Studio / VS Code with Flutter extensions
+- Firebase account
 
-### Installation
+### Setup Instructions
 
 1. **Clone the repository**
-
-```bash
-git clone https://github.com/yourusername/diabetes_buddy.git
-cd diabetes_buddy
-```
+   ```bash
+   git clone https://github.com/yourusername/diabetes-edu.git
+   cd diabetes-edu
+   ```
 
 2. **Install dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-```bash
-flutter pub get
-```
+3. **Firebase Setup**
+    - Create a new Firebase project at [firebase.google.com](https://firebase.google.com)
+    - Enable Authentication (Email/Password)
+    - Create a Firestore Database
+    - Download and add the `google-services.json` file to `/android/app/`
+    - Download and add the `GoogleService-Info.plist` file to `/ios/Runner/`
 
-3. **Configure Firebase**
-
-- Create a new Firebase project
-- Add Android and iOS apps to your Firebase project
-- Download and add the configuration files (google-services.json for Android, GoogleService-Info.plist for iOS)
-- Enable Authentication (Email/Password), Firestore Database, and Cloud Messaging
-
-4. **Configure YouTube API**
-
-- Replace the placeholder API key in `lib/services/content_service.dart` with your YouTube API key
+4. **YouTube API Setup**
+    - Create a Google Cloud project
+    - Enable the YouTube Data API v3
+    - Create API credentials
+    - Add your YouTube API key to `lib/data/services/youtube_service.dart`
 
 5. **Run the app**
-
-```bash
-flutter run
-```
+   ```bash
+   flutter run
+   ```
 
 ## Project Structure
 
+The app is organized using a feature-based architecture:
+
 ```
 lib/
-├── constants/                # App-wide constants
-│   └── string_constants.dart # Text strings used throughout the app
 │
-├── models/                   # Data models
-│   ├── user_model.dart       # User profile information
-│   ├── content_model.dart    # Educational content
-│   ├── quiz_model.dart       # Quiz questions and answers
-│   └── ...                   # Other data models
+├── main.dart                  # App entry point
+├── app.dart                   # App configuration
 │
-├── navigation/               # Navigation configuration
-│   └── app_router.dart       # Centralized navigation system
+├── config/                    # Configuration files
+│   ├── routes.dart            # Route definitions
+│   ├── theme.dart             # App theme configuration
+│   └── constants.dart         # App constants
 │
-├── screens/                  # UI screens
-│   ├── authentication/       # Login, register, etc.
-│   ├── home/                 # Home screen and dashboard
-│   ├── education/            # Content viewing screens
-│   ├── progress/             # Progress tracking
-│   ├── admin/                # Admin panel
-│   ├── settings/             # App settings
-│   └── widgets/              # Shared UI components
+├── core/                      # Core utilities
+│   ├── error/                 # Error handling
+│   ├── network/               # Network utilities
+│   └── utils/                 # Helper functions
 │
-├── services/                 # Business logic and data services
-│   ├── auth_service.dart     # Authentication logic
-│   ├── database_service.dart # Database operations
-│   ├── content_service.dart  # Content delivery
-│   ├── points_service.dart   # Gamification points
-│   ├── youtube_service.dart  # YouTube API integration
-│   └── ...                   # Other services
+├── data/                      # Data layer
+│   ├── models/                # Data models
+│   ├── repositories/          # Repositories implementation
+│   └── services/              # Services for external APIs
 │
-├── theme/                    # Theme configuration
-│   └── app_theme.dart        # Colors, typography, and styles
+├── domain/                    # Domain layer
+│   ├── providers/             # State management providers
+│   └── usecases/              # Business logic use cases
 │
-├── utils/                    # Utility functions and helpers
+├── presentation/              # UI Layer
+│   ├── common/                # Common widgets
+│   ├── screens/               # App screens
+│   └── widgets/               # Reusable widgets
 │
-├── app.dart                  # Main app configuration
-└── main.dart                 # App entry point
+└── localization/              # Internationalization
 ```
 
-## Architecture
+## Dependencies
 
-DiabetesBuddy follows a service-based architecture with clean separation of concerns:
+The app uses the following main dependencies:
 
-1. **UI Layer** (Screens and Widgets): Responsible for displaying data and capturing user input
-2. **Service Layer**: Contains business logic and serves as an intermediary between UI and data
-3. **Data Layer**: Handles data persistence, network requests, and local storage
-4. **Model Layer**: Defines the structure of data entities
+- **firebase_core, firebase_auth, cloud_firestore**: Firebase integration
+- **provider**: State management
+- **youtube_player_flutter**: YouTube video playback
+- **shared_preferences**: Local storage
+- **hive_flutter**: Offline database
+- **flutter_local_notifications**: Local notifications
+- **connectivity_plus**: Network connectivity checking
+- **path_provider**: File system access
 
-The app uses **Provider** for state management, ensuring a unidirectional data flow and efficient rebuilds.
+For a complete list, see the `pubspec.yaml` file.
 
-## Database Structure
+## Firebase Collection Structure
 
-DiabetesBuddy uses Firebase Firestore with the following collections:
+The Firestore database has the following collections:
 
-- **users**: User profiles and progress tracking
-- **content**: Educational materials including videos and slides
-- **modules**: Collections of related content organized by topic
-- **quizzes**: Knowledge assessment questions and answers
-- **progress**: Tracking user interaction with content
-- **achievements**: Gamification elements that can be unlocked
-- **feedback**: User ratings and comments on content
-- **analytics**: Usage statistics and engagement metrics
+- **users**: User account information
+- **contents**: Educational content (videos, slides)
+- **quizzes**: Quiz questions and answers
+- **progress**: User progress tracking
+- **achievements**: Earned user achievements
+- **feedback**: User feedback on content
+- **plans**: Educational plan templates
 
-## Content Management
+## Initial Content Setup
 
-### Content Creation
+For the MVP, you'll need to set up some initial content in Firestore:
 
-The app supports two types of educational content:
+1. Create at least 3 content documents in the `contents` collection:
+   ```json
+   {
+     "title": "Introduction to Diabetes",
+     "description": "Learn the basics of diabetes and its types",
+     "contentType": "video",
+     "order": 1,
+     "youtubeVideoId": "YOUR_YOUTUBE_VIDEO_ID",
+     "pointsToEarn": 10,
+     "tags": ["basics", "introduction"],
+     "requiredDiabetesTypes": [],
+     "requiredTreatmentMethods": [],
+     "createdAt": Timestamp,
+     "updatedAt": Timestamp,
+     "isActive": true
+   }
+   ```
 
-1. **Video Content**: Linked from YouTube using video IDs
-2. **Slide Content**: Text-based slides with simple formatting
-
-Each piece of content belongs to a module and can have an associated quiz for knowledge assessment.
-
-### Content Delivery
-
-Content is delivered through:
-
-- **YouTube Player**: For video content with progress tracking
-- **Slide Viewer**: For text/image based content
-
-## Offline Support
-
-DiabetesBuddy implements a comprehensive offline strategy:
-
-1. **Local Storage**: User data, progress, and completed lessons cached using Hive
-2. **Content Caching**: Educational content stored locally for offline access
-3. **Synchronization**: Changes made offline synchronized when connection restored
+2. Create corresponding quiz documents in the `quizzes` collection:
+   ```json
+   {
+     "title": "Diabetes Basics Quiz",
+     "description": "Test your knowledge of diabetes basics",
+     "contentId": "CONTENT_DOC_ID",
+     "questions": [
+       {
+         "id": "q1",
+         "questionText": "What is diabetes?",
+         "questionType": "multiple_choice",
+         "options": [
+           {
+             "id": "a",
+             "text": "A condition affecting only the lungs"
+           },
+           {
+             "id": "b",
+             "text": "A condition where blood glucose levels are too high"
+           },
+           {
+             "id": "c",
+             "text": "A viral infection"
+           }
+         ],
+         "correctAnswers": ["b"],
+         "explanation": "Diabetes is a condition where blood glucose levels are too high because the body cannot make or use insulin properly."
+       }
+     ],
+     "passingScore": 60,
+     "pointsPerQuestion": 5,
+     "createdAt": Timestamp,
+     "updatedAt": Timestamp,
+     "isActive": true
+   }
+   ```
 
 ## Testing
 
-### Unit Tests
+### Manual Testing Checklist
 
-Tests for core services and business logic can be run with:
+- [ ] User Registration
+- [ ] User Login
+- [ ] Onboarding Flow
+- [ ] Home Dashboard
+- [ ] Video Playback
+- [ ] Progress Tracking
+- [ ] Quiz Functionality
+- [ ] Achievement Unlocking
+- [ ] Offline Mode
+- [ ] Data Synchronization
+- [ ] Settings Options
+- [ ] Dark Mode
+- [ ] Notifications
+
+### Automated Testing
+
+Basic widget tests are included in the `test/` directory. To run them:
 
 ```bash
-flutter test test/services/
+flutter test
 ```
 
-### Widget Tests
+## Offline Functionality
 
-UI component tests can be run with:
+The app implements offline functionality through:
 
-```bash
-flutter test test/widgets/
-```
+1. Local data caching with Hive and SharedPreferences
+2. YouTube video offline viewing capability
+3. Background synchronization when online
+4. Network connectivity monitoring
+
+## Security Considerations
+
+- User authentication is handled by Firebase Auth
+- Medical data is stored securely and not shared with third parties
+- Sensitive data is encrypted on-device
+- Network calls use HTTPS
+- The app implements proper error handling
 
 ## Deployment
 
 ### Android
 
-Build an APK with:
-
-```bash
-flutter build apk --release
-```
+1. Configure app details in `android/app/build.gradle`
+2. Create a signing key:
+   ```bash
+   keytool -genkey -v -keystore ~/key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
+   ```
+3. Configure signing in `android/app/key.properties`
+4. Build the APK:
+   ```bash
+   flutter build apk --release
+   ```
 
 ### iOS
 
-Build for iOS with:
-
-```bash
-flutter build ios --release
-```
+1. Configure app details in `ios/Runner/Info.plist`
+2. Open the project in Xcode:
+   ```bash
+   open ios/Runner.xcworkspace
+   ```
+3. Configure signing in Xcode under Runner > Signing & Capabilities
+4. Build the app:
+   ```bash
+   flutter build ios --release
+   ```
 
 ## Future Enhancements
 
-- Community features and social sharing
-- Personalized reminders based on user behavior
-- Advanced analytics for healthcare providers
-- Multi-language support
-- Expanded content library
-- Integration with medical devices and health apps
+- Social sharing functionality
+- Multiple language support
+- More extensive admin dashboard
+- Support for healthcare provider accounts
+- Integration with health tracking apps/devices
+- Forum/community features
+- Advanced analytics dashboard
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Firebase connection issues**
+    - Verify your `google-services.json` and `GoogleService-Info.plist` files
+    - Check network connectivity
+    - Ensure Firebase services are enabled
+
+2. **YouTube player not working**
+    - Verify your YouTube API key
+    - Check if the device has YouTube app installed
+    - Ensure the video ID is correct and the video is publicly accessible
+
+3. **Offline mode issues**
+    - Clear app data and cache
+    - Ensure proper permissions are granted
+    - Check if local storage is properly initialized
+
+## Contributing
+
+If you'd like to contribute to the project, please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
-
-- [Flutter](https://flutter.dev/) for the incredible cross-platform framework
-- [Firebase](https://firebase.google.com/) for backend services
-- [YouTube API](https://developers.google.com/youtube/v3) for video integration

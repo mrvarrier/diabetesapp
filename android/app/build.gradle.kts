@@ -1,14 +1,19 @@
+// File: android/app/build.gradle.kts
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Add Google Services plugin here instead of using apply plugin later
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.diabetesapp"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Update NDK version to match the one required by the plugins
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -41,4 +46,13 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Define Kotlin version directly here instead of trying to access it from rootProject
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10")
+
+    // Firebase dependencies with Kotlin DSL syntax
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
