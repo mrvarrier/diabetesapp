@@ -202,7 +202,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Flutter](https://flutter.dev/) for the incredible cross-platform framework
 - [Firebase](https://firebase.google.com/) for backend services
 - [YouTube API](https://developers.google.com/youtube/v3) for video integration
-
-## Support
-
-For support or questions, please contact us at support@diabetesbuddy.app
